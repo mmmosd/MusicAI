@@ -1,5 +1,5 @@
 import streamlit as st
-import model
+import model as model
 
 model.printTFVersion()
 
