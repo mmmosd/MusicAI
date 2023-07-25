@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from tensorflow.keras.models import Model, Sequential
-from tensorflow.keras.layers import Dense, Activation, sigmoid, LeakyReLU, Conv2D, UpSampling2D, Reshape, BatchNormalization, Dropout
+from tensorflow.keras.layers import Dense, Activation, LeakyReLU, Conv2D, UpSampling2D, Reshape, BatchNormalization, Dropout
 
 def printTFVersion():
     print(tf.__version__)
@@ -50,8 +50,10 @@ class GenerativeModel(Model):
         x = self.output(x)
         return x
 
+
+EPOCHS = 100
+
 def main():
-    EPOCHS = 100
 
     modelD = DiscriminativeModel()
     modelG = GenerativeModel()
@@ -60,6 +62,6 @@ def main():
     modelG.compile(loss='binary_crossentropy', optimizer='adam')
 
     modelD.trainable = False
-    
+
     modelD.save()
     modelG.save()
