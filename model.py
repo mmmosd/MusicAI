@@ -50,15 +50,16 @@ class GenerativeModel(Model):
         x = self.output(x)
         return x
 
-EPOCHS = 100
+def main():
+    EPOCHS = 100
 
-modelD = DiscriminativeModel()
-modelG = GenerativeModel()
+    modelD = DiscriminativeModel()
+    modelG = GenerativeModel()
 
-modelD.compile(loss='binary_crossentropy', optimizer='adam')
-modelG.compile(loss='binary_crossentropy', optimizer='adam')
+    modelD.compile(loss='binary_crossentropy', optimizer='adam')
+    modelG.compile(loss='binary_crossentropy', optimizer='adam')
 
-modelD.trainable = False
-
-modelD.save()
-modelG.save()
+    modelD.trainable = False
+    
+    modelD.save()
+    modelG.save()
