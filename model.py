@@ -1,5 +1,3 @@
-import tensorflow as tf
-
 from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.layers import Dense, Activation, LeakyReLU, Conv2D, UpSampling2D, Reshape, BatchNormalization, Dropout
 
