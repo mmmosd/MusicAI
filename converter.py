@@ -1,20 +1,20 @@
 import librosa
 import numpy as np
-import matplotlib.pyplot as plt
+import soundfile as sf
+import os
 
 from sklearn.preprocessing import MinMaxScaler
 from PIL import Image
 
-def Sound_To_Spectrogram(Sound, duration):
-    y = librosa.load(Sound, duration=duration)
-    return librosa.amplitude_to_db(np.abs(librosa.stft(y[0])), ref=np.max)
-
-def Spectrogram_To_Sound(Spectrogram, duration):
-    return librosa.feature.melspectrogram(Spectrogram, duration=duration)
+def Sound_To_Spectrogram(FilePath, duration):
+    y = librosa.load(FilePath, duration=duration, sr=44100)
+    mel_spec = librosa.feature.melspectrogram(y=y[0], sr=44100)
+    return mel_spec
 
 def Save_Spectrogram_Image(Spectrogram, filename):
     arr = MinMaxScaler().fit_transform(Spectrogram)*255
     Image.fromarray(arr).convert('RGB').save(filename, 'JPEG')
 
-spg = Sound_To_Spectrogram(librosa.ex('choice'), 15)
-Save_Spectrogram_Image(spg, 'spgTest.jpg')
+def Save_Spectrogram_Audio(Spectrogram, filename):
+    audio = librosa.feature.inverse.mel_to_audio(Spectrogram, sr=44100)
+    sf.write(filename, audio, 44100)
