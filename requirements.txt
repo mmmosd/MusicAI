@@ -3,4 +3,4 @@ matplotlib
 numpy
 librosa
 soundfile
-numpy==1.21.4
+numpy

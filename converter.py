@@ -12,12 +12,12 @@ def Sound_To_Spectrogram(FilePath, duration):
 
 def Save_Spectrogram_Image(Spectrogram, filename, write=True):
     arr = MinMaxScaler().fit_transform(Spectrogram)*255
-    if (write == True): 
+    if (write == True):
         Image.fromarray(arr).convert('RGB').save(filename, 'JPEG')
     return arr
 
 def Save_Spectrogram_Audio(Spectrogram, filename, write=True):
     audio = librosa.feature.inverse.mel_to_audio(Spectrogram, sr=44100)
-    if (write == True): 
+    if (write == True):
         sf.write(filename, audio, 44100)
     return audio
