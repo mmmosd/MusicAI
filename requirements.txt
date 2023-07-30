@@ -3,4 +3,4 @@ matplotlib
 numpy
 librosa
 soundfile
-numpy
+glob
