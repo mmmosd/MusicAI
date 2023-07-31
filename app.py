@@ -28,5 +28,5 @@ st.header("LOFI-LOOP 🎷")
 st.subheader("made by mmmosd")
 
 
-# autoplay_audio(filename)
+# autoplay_audio(filepath)
 # st.audio(Result_Audio, format="audio/wav", start_time=0, sample_rate=44100)
