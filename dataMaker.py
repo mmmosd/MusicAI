@@ -5,6 +5,7 @@ import glob
 import converter
 import soundfile as sf
 
+
 def Save_Cut_Audio(data_path_list, cut_length, save_path):
     resultList = []
 
@@ -26,7 +27,7 @@ def Load_Data_As_Spectrogram(audio_length):
 
     for i in range(len(Data_list)):
         spg = converter.Audio_To_Spectrogram(Data_list[i])
-        np.resize(spg, (128, int(spg.shape[1]/128) * 128))
+        # spg = np.resize(spg, (128, int(spg.shape[1]/128) * 128))
         fileList.append(spg)
 
     fileList = np.array(fileList)
