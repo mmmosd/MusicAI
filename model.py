@@ -7,7 +7,6 @@ import dataMaker
 from torch.optim import Adam
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-from torch.autograd import Variable
 
 AUDIOLEN = 15
 LR = 0.0002
@@ -17,44 +16,47 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
         self.main = nn.Sequential(
-        nn.Conv2d(in_channels=1, out_channels=28*4, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-        nn.BatchNorm2d(num_features=28*4),
-        nn.LeakyReLU(0.2, inplace=True),
-        nn.Conv2d(in_channels=28*4, out_channels=28*8, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-        nn.BatchNorm2d(num_features=28*8),
-        nn.LeakyReLU(0.2, inplace=True),
-        nn.Conv2d(in_channels=28*8, out_channels=1, 
-            kernel_size=7, stride=1, padding=0, 
-            bias=False),
-        nn.Sigmoid())
+            nn.Conv2d(in_channels=1, out_channels=28*4, 
+                      kernel_size=4, stride=2, padding=1, 
+                      bias=False),
+            nn.BatchNorm2d(num_features=28*4),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(in_channels=28*4, out_channels=28*8, 
+                      kernel_size=4, stride=2, padding=1, 
+                      bias=False),
+            nn.BatchNorm2d(num_features=28*8),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.final_layer = nn.Sequential(
+            nn.Conv2d(in_channels=28*8, out_channels=1, 
+                      kernel_size=(32, 320), stride=1, padding=0, 
+                      bias=False),
+            nn.Sigmoid()
+        )
 
     def forward(self, inputs):
-        o = self.main(inputs)
+        x = self.main(inputs)
+        o = self.final_layer(x)
         return o.view(-1, 1)
 
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
         self.main = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=100, out_channels=28*8, 
-                kernel_size=7, stride=1, padding=0, 
-                bias=False),
-            nn.BatchNorm2d(num_features=28*8),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(in_channels=28*8, out_channels=28*4, 
-                kernel_size=4, stride=2, padding=1, 
-                bias=False),
-            nn.BatchNorm2d(num_features=28*4),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(in_channels=28*4, out_channels=1, 
-                kernel_size=4, stride=2, padding=1, 
-                bias=False),
-            nn.Tanh()
-        )
+        nn.ConvTranspose2d(in_channels=100, out_channels=28*8, 
+            kernel_size=7, stride=1, padding=0, 
+            bias=False),
+        nn.BatchNorm2d(num_features=28*8),
+        nn.ReLU(inplace=True),
+        nn.ConvTranspose2d(in_channels=28*8, out_channels=28*4, 
+            kernel_size=4, stride=2, padding=1, 
+            bias=False),
+        nn.BatchNorm2d(num_features=28*4),
+        nn.ReLU(True),
+        nn.ConvTranspose2d(in_channels=28*4, out_channels=1, 
+            kernel_size=4, stride=2, padding=1, 
+            bias=False),
+        nn.Tanh())
 
     def forward(self, inputs):
         inputs = inputs.view(-1, 100, 1, 1)
@@ -63,7 +65,7 @@ class Generator(nn.Module):
 def Train(epoch, batch_size, saving_interval):
     random.seed(SEED)
 
-    DataList, width, height = dataMaker.Load_Data_As_Spectrogram(AUDIOLEN)
+    DataList = dataMaker.Load_Data_As_Spectrogram(AUDIOLEN)
     dataloader = DataLoader(DataList, batch_size=batch_size, shuffle=True)
 
     D = Discriminator()
@@ -75,18 +77,23 @@ def Train(epoch, batch_size, saving_interval):
     D_optimizer = Adam(D.parameters(), lr=LR, betas=(0.5, 0.999))
 
     for epoch in range(epoch):
-        for real_data, _ in dataloader:
-            real_data = Variable(real_data)
-            target_real = Variable(torch.ones(batch_size, 1))
-            target_fake = Variable(torch.zeros(batch_size, 1))
+        for real_data in dataloader:
+            print(real_data.shape)
+
+            batch_size = real_data.shape[0]
+
+            target_real = torch.ones(batch_size, 1)
+            target_fake = torch.zeros(batch_size, 1)
 
             #discriminator train
             D_result_from_real = D(real_data)
 
             D_loss_real = criterion(D_result_from_real, target_real)
 
-            z = Variable(torch.randn((batch_size, 100)))
+            z = torch.randn((batch_size, 100))
             fake_data = G(z)
+
+            print(fake_data.shape)
 
             D_result_from_fake = D(fake_data)
             D_loss_fake = criterion(D_result_from_fake, target_fake)
@@ -98,7 +105,7 @@ def Train(epoch, batch_size, saving_interval):
             
 
             #generator train
-            z = Variable(torch.randn((batch_size, 100)))
+            z = torch.randn((batch_size, 100))
             z = z.cuda()
 
             fake_data = G(z)
@@ -114,11 +121,12 @@ def Train(epoch, batch_size, saving_interval):
             G_loss.backward()
             G_optimizer.step()
 
+        print('G_loss: {}, D_loss: {}'.format(G_loss, D_loss))
 
+    z = torch.randn((batch_size, 100))
+    Gresult = G(z)
 
-# def Generate_Spectrogram():
-#     z = Variable(torch.randn((batch_size, 100)))
-
-#     return Generator(z)
+    converter.Save_Spectrogram_To_Audio(Gresult, 'result')
+    converter.Save_Spectrogram_To_Image(Gresult, 'result')
 
 Train(20, 32, 5)

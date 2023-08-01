@@ -27,12 +27,9 @@ def Load_Data_As_Spectrogram(audio_length):
 
     for i in range(len(Data_list)):
         spg = converter.Audio_To_Spectrogram(Data_list[i])
-        # spg = np.resize(spg, (128, int(spg.shape[1]/128) * 128))
+        spg = np.resize(spg, (1, 128, int(spg.shape[1]/128) * 128))
         fileList.append(spg)
 
     fileList = np.array(fileList)
-    y, x = fileList[0].shape
 
-    print('fileShape: {}, {}'.format(x, y))
-
-    return fileList, x, y
+    return fileList
