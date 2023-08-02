@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 import random
 import converter
 import dataMaker
@@ -44,7 +45,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.main = nn.Sequential(
         nn.ConvTranspose2d(in_channels=100, out_channels=28*8, 
-            kernel_size=7, stride=1, padding=0, 
+            kernel_size=4, stride=1, padding=0, 
             bias=False),
         nn.BatchNorm2d(num_features=28*8),
         nn.ReLU(inplace=True),
@@ -53,8 +54,18 @@ class Generator(nn.Module):
             bias=False),
         nn.BatchNorm2d(num_features=28*4),
         nn.ReLU(True),
-        nn.ConvTranspose2d(in_channels=28*4, out_channels=1, 
-            kernel_size=4, stride=2, padding=1, 
+        nn.ConvTranspose2d(in_channels=28*4, out_channels=28*2, 
+            kernel_size=4, stride=2, padding=1,
+            bias=False),
+        nn.BatchNorm2d(num_features=28*2),
+        nn.ReLU(True),
+        nn.ConvTranspose2d(in_channels=28*2, out_channels=28, 
+            kernel_size=8, stride=4, padding=2,
+            bias=False),
+        nn.BatchNorm2d(num_features=28),
+        nn.ReLU(True),
+        nn.ConvTranspose2d(in_channels=28, out_channels=1, 
+            kernel_size=(4, 40), stride=(2, 20), padding=(1, 10),
             bias=False),
         nn.Tanh())
 
@@ -93,8 +104,6 @@ def Train(epoch, batch_size, saving_interval):
             z = torch.randn((batch_size, 100))
             fake_data = G(z)
 
-            print(fake_data.shape)
-
             D_result_from_fake = D(fake_data)
             D_loss_fake = criterion(D_result_from_fake, target_fake)
             D_loss = D_loss_real + D_loss_fake
@@ -106,13 +115,18 @@ def Train(epoch, batch_size, saving_interval):
 
             #generator train
             z = torch.randn((batch_size, 100))
-            z = z.cuda()
 
             fake_data = G(z)
 
             if (epoch%saving_interval == 0):
-                converter.Save_Spectrogram_To_Audio(fake_data, 'epoch_{}'.format(epoch))
-                converter.Save_Spectrogram_To_Image(fake_data, 'epoch_{}'.format(epoch))
+                fake_data_np = fake_data
+                fake_data_np = fake_data_np[0].detach().numpy().reshape(128, 1280)
+                
+
+                print(fake_data_np.shape)
+
+                converter.Save_Spectrogram_To_Audio(fake_data_np, 'epoch_{}'.format(epoch))
+                converter.Save_Spectrogram_To_Image(fake_data_np, 'epoch_{}'.format(epoch))
 
             D_result_from_fake = D(fake_data)
             G_loss = criterion(D_result_from_fake, target_real)
@@ -125,6 +139,7 @@ def Train(epoch, batch_size, saving_interval):
 
     z = torch.randn((batch_size, 100))
     Gresult = G(z)
+    Gresult = Gresult[0].detach().numpy().reshape(128, 1280)
 
     converter.Save_Spectrogram_To_Audio(Gresult, 'result')
     converter.Save_Spectrogram_To_Image(Gresult, 'result')
