@@ -17,21 +17,22 @@ class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
         self.main = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=28*4, 
-                      kernel_size=4, stride=2, padding=1, 
-                      bias=False),
-            nn.BatchNorm2d(num_features=28*4),
+            nn.Conv2d(in_channels=1, out_channels=128,
+            kernel_size=4, stride=2, padding=1,
+            bias=False),
+            nn.BatchNorm2d(num_features=128),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(in_channels=28*4, out_channels=28*8, 
-                      kernel_size=4, stride=2, padding=1, 
-                      bias=False),
-            nn.BatchNorm2d(num_features=28*8),
+
+            nn.Conv2d(in_channels=128, out_channels=128*2, 
+            kernel_size=4, stride=2, padding=1, 
+            bias=False),
+            nn.BatchNorm2d(num_features=128*2),
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.final_layer = nn.Sequential(
-            nn.Conv2d(in_channels=28*8, out_channels=1, 
-                      kernel_size=(32, 320), stride=1, padding=0, 
-                      bias=False),
+            nn.Conv2d(in_channels=128*2, out_channels=1, 
+            kernel_size=(32, 320), stride=1, padding=0, 
+            bias=False),
             nn.Sigmoid()
         )
 
@@ -44,34 +45,30 @@ class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
         self.main = nn.Sequential(
-        nn.ConvTranspose2d(in_channels=100, out_channels=28*8, 
-            kernel_size=4, stride=1, padding=0, 
+            nn.ConvTranspose2d(in_channels=100, out_channels=128, 
+            kernel_size=(32, 320), stride=1, padding=0, 
             bias=False),
-        nn.BatchNorm2d(num_features=28*8),
-        nn.ReLU(inplace=True),
-        nn.ConvTranspose2d(in_channels=28*8, out_channels=28*4, 
+            nn.BatchNorm2d(num_features=128),
+            nn.ReLU(True),
+
+            nn.ConvTranspose2d(in_channels=128, out_channels=128*2, 
             kernel_size=4, stride=2, padding=1, 
             bias=False),
-        nn.BatchNorm2d(num_features=28*4),
-        nn.ReLU(True),
-        nn.ConvTranspose2d(in_channels=28*4, out_channels=28*2, 
-            kernel_size=4, stride=2, padding=1,
+            nn.BatchNorm2d(num_features=128*2),
+            nn.ReLU(True),
+        )
+        self.final_layer = nn.Sequential(
+            nn.ConvTranspose2d(in_channels=128*2, out_channels=1, 
+            kernel_size=4, stride=2, padding=1, 
             bias=False),
-        nn.BatchNorm2d(num_features=28*2),
-        nn.ReLU(True),
-        nn.ConvTranspose2d(in_channels=28*2, out_channels=28, 
-            kernel_size=8, stride=4, padding=2,
-            bias=False),
-        nn.BatchNorm2d(num_features=28),
-        nn.ReLU(True),
-        nn.ConvTranspose2d(in_channels=28, out_channels=1, 
-            kernel_size=(4, 40), stride=(2, 20), padding=(1, 10),
-            bias=False),
-        nn.Tanh())
+            nn.Tanh()
+        )
 
     def forward(self, inputs):
         inputs = inputs.view(-1, 100, 1, 1)
-        return self.main(inputs)
+        x = self.main(inputs)
+        o = self.final_layer(x)
+        return o
 
 def Train(epoch, batch_size, saving_interval):
     random.seed(SEED)
@@ -118,16 +115,6 @@ def Train(epoch, batch_size, saving_interval):
 
             fake_data = G(z)
 
-            if (epoch%saving_interval == 0):
-                fake_data_np = fake_data
-                fake_data_np = fake_data_np[0].detach().numpy().reshape(128, 1280)
-                
-
-                print(fake_data_np.shape)
-
-                converter.Save_Spectrogram_To_Audio(fake_data_np, 'epoch_{}'.format(epoch))
-                converter.Save_Spectrogram_To_Image(fake_data_np, 'epoch_{}'.format(epoch))
-
             D_result_from_fake = D(fake_data)
             G_loss = criterion(D_result_from_fake, target_real)
 
@@ -135,7 +122,15 @@ def Train(epoch, batch_size, saving_interval):
             G_loss.backward()
             G_optimizer.step()
 
-        print('G_loss: {}, D_loss: {}'.format(G_loss, D_loss))
+            print('G_loss: {}, D_loss: {}'.format(G_loss, D_loss))
+
+        if (epoch%saving_interval == 0):
+            z = torch.randn((batch_size, 100))
+            Gresult = G(z)
+            Gresult = Gresult[0].detach().numpy().reshape(128, 1280)
+
+            converter.Save_Spectrogram_To_Audio(Gresult, 'epoch_{}'.format(epoch))
+            converter.Save_Spectrogram_To_Image(Gresult, 'epoch_{}'.format(epoch))
 
     z = torch.randn((batch_size, 100))
     Gresult = G(z)
@@ -144,4 +139,4 @@ def Train(epoch, batch_size, saving_interval):
     converter.Save_Spectrogram_To_Audio(Gresult, 'result')
     converter.Save_Spectrogram_To_Image(Gresult, 'result')
 
-Train(20, 32, 5)
+Train(20, 32, 1)
