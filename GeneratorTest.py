@@ -5,21 +5,34 @@ class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
         self.main = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=100, out_channels=28*8, 
-                      kernel_size=(32, 320), stride=1, padding=0, 
-                      bias=False),
-            nn.BatchNorm2d(num_features=28*8),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(in_channels=28*8, out_channels=28*4, 
-                      kernel_size=4, stride=2, padding=1, 
-                      bias=False),
-            nn.BatchNorm2d(num_features=28*4),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.ConvTranspose2d(in_channels=100, out_channels=32, 
+            kernel_size=(8, 80), stride=1, padding=0, 
+            bias=False),
+            nn.BatchNorm2d(num_features=32),
+            nn.ReLU(True),
+
+            nn.ConvTranspose2d(in_channels=32, out_channels=32*2, 
+            kernel_size=4, stride=2, padding=1, 
+            bias=False),
+            nn.BatchNorm2d(num_features=32*2),
+            nn.ReLU(True),
+
+            nn.ConvTranspose2d(in_channels=32*2, out_channels=32*4, 
+            kernel_size=4, stride=2, padding=1, 
+            bias=False),
+            nn.BatchNorm2d(num_features=32*4),
+            nn.ReLU(True),
+
+            nn.ConvTranspose2d(in_channels=32*4, out_channels=32*8, 
+            kernel_size=4, stride=2, padding=1, 
+            bias=False),
+            nn.BatchNorm2d(num_features=32*8),
+            nn.ReLU(True),
         )
         self.final_layer = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=28*4, out_channels=1, 
-                      kernel_size=4, stride=2, padding=1, 
-                      bias=False),
+            nn.ConvTranspose2d(in_channels=32*8, out_channels=1, 
+            kernel_size=4, stride=2, padding=1, 
+            bias=False),
             nn.Tanh()
         )
 
