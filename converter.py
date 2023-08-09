@@ -7,7 +7,8 @@ from sklearn.preprocessing import MinMaxScaler
 from PIL import Image
 
 def Audio_To_Spectrogram(Audio):
-    mel_spec = librosa.feature.melspectrogram(y=Audio, sr=44100)
+    mel_spec = librosa.feature.melspectrogram(y=Audio, sr=44100, n_mels=128)
+    # stft = librosa.amplitude_to_db(np.abs(librosa.stft(y=Audio)))
     return mel_spec
 
 def Save_Spectrogram_To_Image(Spectrogram, filename, write=True):
@@ -18,6 +19,7 @@ def Save_Spectrogram_To_Image(Spectrogram, filename, write=True):
 
 def Save_Spectrogram_To_Audio(Spectrogram, filename, write=True):
     audio = librosa.feature.inverse.mel_to_audio(Spectrogram, sr=44100)
+    # audio = librosa.istft(Spectrogram)
     if (write == True):
         sf.write('./Result_Audio/'+filename+'.wav', audio, 44100, format='WAV')
     return audio

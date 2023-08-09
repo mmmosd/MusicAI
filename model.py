@@ -13,39 +13,33 @@ LR = 0.0002
 SEED = 1
 
 class Discriminator(nn.Module):
-    def __init__(self, ngpu):
+    def __init__(self, ngpu, w, h):
         super(Discriminator, self).__init__()
 
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=32,
-            kernel_size=4, stride=2, padding=1,
-            bias=False),
-            nn.BatchNorm2d(num_features=32),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(in_features=w*h, out_features=512),
+            nn.LeakyReLU(0.02, True),
+            nn.Dropout(0.1),
 
-            nn.Conv2d(in_channels=32, out_channels=32*2, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-            nn.BatchNorm2d(num_features=32*2),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(in_features=512, out_features=512*2),
+            nn.LeakyReLU(0.02, True),
+            nn.Dropout(0.1),
 
-            nn.Conv2d(in_channels=32*2, out_channels=32*4, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-            nn.BatchNorm2d(num_features=32*4),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(in_features=512*2, out_features=512*4),
+            nn.LeakyReLU(0.02, True),
+            nn.Dropout(0.1),
 
-            nn.Conv2d(in_channels=32*4, out_channels=32*8, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-            nn.BatchNorm2d(num_features=32*8),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(in_features=512*4, out_features=512*8),
+            nn.LeakyReLU(0.02, True),
+            nn.Dropout(0.1),
+
+            nn.Linear(in_features=512*8, out_features=512*16),
+            nn.LeakyReLU(0.02, True),
+            nn.Dropout(0.1)
         )
         self.final_layer = nn.Sequential(
-            nn.Conv2d(in_channels=32*8, out_channels=1, 
-            kernel_size=(8, 80), stride=1, padding=0, 
-            bias=False),
+            nn.Linear(in_features=512*16, out_features=1),
             nn.Sigmoid()
         )
 
@@ -55,44 +49,37 @@ class Discriminator(nn.Module):
         return o.view(-1, 1)
 
 class Generator(nn.Module):
-    def __init__(self, ngpu):
+    def __init__(self, ngpu, w, h):
         super(Generator, self).__init__()
 
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=100, out_channels=32*8, 
-            kernel_size=(8, 80), stride=1, padding=0, 
-            bias=False),
-            nn.BatchNorm2d(num_features=32*8),
+            nn.Linear(in_features=100, out_features=512*16),
             nn.ReLU(True),
+            nn.Dropout(0.1),
 
-            nn.ConvTranspose2d(in_channels=32*8, out_channels=32*4, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-            nn.BatchNorm2d(num_features=32*4),
+            nn.Linear(in_features=512*16, out_features=512*8),
             nn.ReLU(True),
+            nn.Dropout(0.1),
 
-            nn.ConvTranspose2d(in_channels=32*4, out_channels=32*2, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-            nn.BatchNorm2d(num_features=32*2),
+            nn.Linear(in_features=512*8, out_features=512*4),
             nn.ReLU(True),
+            nn.Dropout(0.1),
 
-            nn.ConvTranspose2d(in_channels=32*2, out_channels=32, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-            nn.BatchNorm2d(num_features=32),
+            nn.Linear(in_features=512*4, out_features=512*2),
             nn.ReLU(True),
+            nn.Dropout(0.1),
+
+            nn.Linear(in_features=512*2, out_features=512),
+            nn.ReLU(True),
+            nn.Dropout(0.1)
         )
         self.final_layer = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=32, out_channels=1, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
+            nn.Linear(in_features=512, out_features=w*h),
             nn.Tanh()
         )
 
     def forward(self, inputs):
-        inputs = inputs.view(-1, 100, 1, 1)
         x = self.main(inputs)
         o = self.final_layer(x)
         return o
@@ -109,17 +96,24 @@ def Train(epoch, batch_size, saving_interval, ngpu):
     device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
     random.seed(SEED)
 
-    DataList = dataMaker.Load_Data_As_Spectrogram(AUDIOLEN)
+    DataList, w, h = dataMaker.Load_Data_As_Spectrogram(AUDIOLEN)
     dataloader = DataLoader(DataList, batch_size=batch_size, shuffle=True)
 
-    D = Discriminator(ngpu).to(device)
-    G = Generator(ngpu).to(device)
+    print("data_shape: {}, {}".format(h, w))
+
+    D = Discriminator(ngpu, w, h).to(device)
+    G = Generator(ngpu, w, h).to(device)
+
+    if (device.type == 'cuda') and (ngpu > 1):
+        D = nn.DataParallel(D, list(range(ngpu)))
+        G = nn.DataParallel(G, list(range(ngpu)))
 
     D.apply(weights_init)
     G.apply(weights_init)
 
-    criterion = nn.BCELoss()
+    criterion = nn.BCELoss() # 손실 함수
 
+    # 최적화 함수
     G_optimizer = Adam(G.parameters(), lr=LR, betas=(0.5, 0.999))
     D_optimizer = Adam(D.parameters(), lr=LR, betas=(0.5, 0.999))
 
@@ -127,40 +121,44 @@ def Train(epoch, batch_size, saving_interval, ngpu):
         for real_data in dataloader:
             batch_size = real_data.shape[0]
 
-            target_real = torch.ones(batch_size, 1)
-            target_fake = torch.zeros(batch_size, 1)
+            target_real = torch.ones(batch_size, 1, device=device)
+            target_fake = torch.zeros(batch_size, 1, device=device)
 
-            z = torch.randn((batch_size, 100)) # 랜덤 벡터 z
+            z = torch.randn((batch_size, 100), device=device) # 랜덤 벡터 z
+            real_data = real_data.reshape((batch_size, -1)).to(device)
 
             # train D
-            D_loss = criterion(D(real_data), target_real) + criterion(D(G(z)), target_fake) # 판별자의 오차 = 진짜를 판별했을 때 오차 + 가짜를 판별했을 때 오차
+            D.zero_grad()
 
-            D_optimizer.zero_grad() # 역전파 시 기울기 소실 방지
+            D_loss = criterion(D(real_data), target_real) + criterion(D(G(z)), target_fake)
+
             D_loss.backward()
             D_optimizer.step()
             
             # train G
-            G_loss = criterion(D(G(z)), target_real) # 생성자의 오차 = 판별자가 가짜를 판별했을 때의 확률과 진짜 확률과의 오차
+            G.zero_grad()
 
-            G_optimizer.zero_grad() # 역전파 시 기울기 소실 방지
+            G_loss = criterion(D(G(z)), target_real)
+
             G_loss.backward()
             G_optimizer.step()
 
-            print('epoch: {}, G_loss: {}, D_loss: {}, D(G(z)): {}'.format(epoch+1, G_loss, D_loss, D(G(z))[0].detach().numpy()))
+            print('epoch: {}, D_loss: {}, G_loss: {}, D(G(z)): {}'.format(epoch+1, D_loss, G_loss, D(G(z))[0].detach().numpy()))
 
         if (epoch%saving_interval == 0):
-            z = torch.randn((batch_size, 100))
+            z = torch.randn((batch_size, 100), device=device)
             Gresult = G(z)
-            Gresult = Gresult[0].detach().numpy().reshape(128, 1280)
+            Gresult = Gresult[0].detach().numpy().reshape(h, w)
 
             converter.Save_Spectrogram_To_Audio(Gresult, 'epoch_{}'.format(epoch+1))
             converter.Save_Spectrogram_To_Image(Gresult, 'epoch_{}'.format(epoch+1))
 
-    z = torch.randn((batch_size, 100))
+    z = torch.randn((batch_size, 100), device=device)
     Gresult = G(z)
-    Gresult = Gresult[0].detach().numpy().reshape(128, 1280)
+    Gresult = Gresult[0].detach().numpy().reshape(h, w)
 
     converter.Save_Spectrogram_To_Audio(Gresult, 'result')
     converter.Save_Spectrogram_To_Image(Gresult, 'result')
 
-Train(20, 32, 1, 1)
+
+Train(200, 32, 5, 1)
