@@ -6,7 +6,7 @@ import converter
 import soundfile as sf
 
 
-def Cut_Audio(data_path_list, cut_length, save_path, write=True):
+def Cut_Audio(data_path_list, cut_length, save_path, count=None, write=True):
     resultList = []
 
     for num, data_path in enumerate(data_path_list):
@@ -20,24 +20,27 @@ def Cut_Audio(data_path_list, cut_length, save_path, write=True):
             
             resultList.append(cut)
 
+            if (count != None): 
+                if (len(resultList) >= count): return resultList
+
     return resultList
 
 
-def Load_Data_As_Spectrogram(audio_length):
-    Data_list = Cut_Audio(glob.glob('./Sample_Data/*'), audio_length, './data/', write=False)
+def Load_Data_As_Spectrogram(audio_length, max_count=None):
+    Data_list = Cut_Audio(glob.glob('./Sample_Data/*'), audio_length, './data/', max_count, write=False)
     fileList = []
 
     for i in range(len(Data_list)):
         spg = converter.Audio_To_Spectrogram(Data_list[i])
-        # spg = np.resize(spg, (1, 128, int(spg.shape[1]/32) * 32))
-
         h, w = spg.shape
 
         fileList.append(spg)
 
-    spg = fileList[78]
+    spg = fileList[140]
 
     converter.Save_Spectrogram_To_Image(spg, 'sample_image')
     converter.Save_Spectrogram_To_Audio(spg, 'sample_audio')
+
+    print('data_count: {}'.format(len(fileList)))
 
     return fileList, w, h

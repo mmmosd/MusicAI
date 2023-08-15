@@ -7,45 +7,33 @@ class Generator(nn.Module):
 
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=100, out_channels=128*8, 
-            kernel_size=4, stride=1, padding=0, 
-            bias=False),
-            nn.BatchNorm2d(num_features=128*8),
+            nn.ConvTranspose2d(in_channels=100, out_channels=32*8, kernel_size=4, stride=2, padding=1,  bias=False),
+            nn.BatchNorm2d(num_features=32*8),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=128*8, out_channels=128*4, 
-            kernel_size=4, stride=2, padding=1,  
-            bias=False),
-            nn.BatchNorm2d(num_features=128*4),
+            nn.ConvTranspose2d(in_channels=32*8, out_channels=32*4, kernel_size=4, stride=2, padding=1,  bias=False),
+            nn.BatchNorm2d(num_features=32*4),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=128*4, out_channels=128*2, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-            nn.BatchNorm2d(num_features=128*2),
+            nn.ConvTranspose2d(in_channels=32*4, out_channels=32*2, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=32*2),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=128*2, out_channels=128, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-            nn.BatchNorm2d(num_features=128),
+            nn.ConvTranspose2d(in_channels=32*2, out_channels=32, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=32),
             nn.ReLU(True),
-        )
-        self.final_layer = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=128, out_channels=1, 
-            kernel_size=4, stride=2, padding=1, 
-            bias=False),
-            nn.Tanh()
+
+            # nn.Linear(in_features=32*16*16, out_features=w*h),
+            # nn.Tanh()
         )
 
-    def forward(self, inputs):
+    def forward(self, inputs, w, h):
         inputs = inputs.view(-1, 100, 1, 1)
         x = self.main(inputs)
-        o = self.final_layer(x)
-        return o
+        return x.view(-1, 1, h, w)
 
 # 모델을 생성하고 예시 입력 데이터로 테스트
 model = Generator(1, 128, 1280)
-inputs = torch.randn(100)  # 입력 데이터 예시
+inputs = torch.randn(100, 128, 1280)  # 입력 데이터 예시
 outputs = model(inputs)
 print(outputs.shape)
