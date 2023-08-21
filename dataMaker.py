@@ -32,6 +32,9 @@ def Load_Data_As_Spectrogram(audio_length, max_count=None):
 
     for i in range(len(Data_list)):
         spg = converter.Audio_To_Spectrogram(Data_list[i])
+
+        spg = spg[0 : int(spg.shape[0] / 32) * 32, 0 : int(spg.shape[1] / 32) * 32]
+
         h, w = spg.shape
 
         fileList.append(spg)

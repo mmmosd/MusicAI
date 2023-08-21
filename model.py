@@ -12,27 +12,93 @@ AUDIOLEN = 15
 LR = 0.0002
 
 
+# class Discriminator(nn.Module):
+#     def __init__(self, ngpu, w, h):
+#         super(Discriminator, self).__init__()
+
+#         self.ngpu = ngpu
+#         self.w = w
+#         self.h = h
+#         self.main = nn.Sequential(
+#             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=4, stride=2, padding=1, bias=False),
+#             nn.LeakyReLU(0.2),
+
+#             nn.Conv2d(in_channels=64, out_channels=64*2, kernel_size=4, stride=2, padding=1, bias=False),
+#             nn.BatchNorm2d(num_features=64*2),
+#             nn.LeakyReLU(0.2),
+
+#             nn.Conv2d(in_channels=64*2, out_channels=64*4, kernel_size=4, stride=2, padding=1, bias=False),
+#             nn.BatchNorm2d(num_features=64*4),
+#             nn.LeakyReLU(0.2),
+
+#             nn.Conv2d(in_channels=64*4, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
+#             nn.LeakyReLU(0.2),
+#         )
+#         self.linear = nn.Sequential(
+#             nn.Flatten(),
+
+#             nn.Linear(in_features=int((w*h)/(16*16)), out_features=1),
+#             nn.Sigmoid()
+#         )
+
+#     def forward(self, inputs):
+#         inputs = inputs.view(-1, 1, self.h, self.w)
+#         x = self.main(inputs)
+#         x = self.linear(x).view(-1, 1)
+#         return x
+
+# class Generator(nn.Module):
+#     def __init__(self, ngpu, w, h):
+#         super(Generator, self).__init__()
+
+#         self.ngpu = ngpu
+#         self.w = w
+#         self.h = h
+#         self.linear = nn.Sequential(
+#             nn.Linear(in_features=100, out_features=int((w*h)/(16*16))),
+#             nn.ReLU()
+#         )
+#         self.main = nn.Sequential(
+#             nn.ConvTranspose2d(in_channels=1, out_channels=64*4, kernel_size=4, stride=2, padding=1, bias=False),
+#             nn.BatchNorm2d(num_features=64*4),
+#             nn.ReLU(),
+
+#             nn.ConvTranspose2d(in_channels=64*4, out_channels=64*2, kernel_size=4, stride=2, padding=1, bias=False),
+#             nn.BatchNorm2d(num_features=64*2),
+#             nn.ReLU(),
+
+#             nn.ConvTranspose2d(in_channels=64*2, out_channels=64, kernel_size=4, stride=2, padding=1, bias=False),
+#             nn.BatchNorm2d(num_features=64),
+#             nn.ReLU(),
+
+#             nn.ConvTranspose2d(in_channels=64, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
+#             nn.Tanh()
+#         )
+
+#     def forward(self, inputs):
+#         x = self.linear(inputs).view(-1, 1, int(self.h/16), int(self.w/16))
+#         x = self.main(x)
+#         return x
+
 class Discriminator(nn.Module):
     def __init__(self, ngpu, w, h):
         super(Discriminator, self).__init__()
 
         self.ngpu = ngpu
         self.main = nn.Sequential(
+            nn.Flatten(),
+
             nn.Linear(in_features=w*h, out_features=128*8),
             nn.LeakyReLU(0.2),
-            nn.Dropout(0.3),
 
             nn.Linear(in_features=128*8, out_features=128*4),
             nn.LeakyReLU(0.2),
-            nn.Dropout(0.3),
 
             nn.Linear(in_features=128*4, out_features=128*2),
             nn.LeakyReLU(0.2),
-            nn.Dropout(0.3),
 
             nn.Linear(in_features=128*2, out_features=128),
             nn.LeakyReLU(0.2),
-            nn.Dropout(0.3),
 
             nn.Linear(in_features=128, out_features=1),
             nn.Sigmoid()
@@ -40,7 +106,7 @@ class Discriminator(nn.Module):
 
     def forward(self, inputs):
         x = self.main(inputs)
-        return x.view(-1, 1)
+        return x
 
 class Generator(nn.Module):
     def __init__(self, ngpu, w, h):
@@ -68,10 +134,13 @@ class Generator(nn.Module):
         x = self.main(inputs)
         return x
     
-def initialize_weights(m):
+def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
         nn.init.normal_(m.weight.data, 0.0, 0.02)
+    elif classname.find('Linear') != -1:
+        nn.init.normal_(m.weight.data, 0.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
     elif classname.find('BatchNorm') != -1:
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
@@ -82,13 +151,13 @@ def Train(epoch, batch_size, saving_interval, save_img_count, ngpu):
     DataList, w, h = dataMaker.Load_Data_As_Spectrogram(AUDIOLEN)
     dataloader = DataLoader(DataList, batch_size=batch_size, shuffle=True)
 
-    print("data_shape: {}, {}".format(h, w))
+    print("data_shape: {}, {}".format(w, h))
 
     D = Discriminator(ngpu, w, h).to(device)
     G = Generator(ngpu, w, h).to(device)
 
-    D.apply(initialize_weights)
-    G.apply(initialize_weights)
+    D.apply(weights_init)
+    G.apply(weights_init)
 
     if (device.type == 'cuda') and (ngpu > 1):
         D = nn.DataParallel(D, list(range(ngpu)))
@@ -100,7 +169,7 @@ def Train(epoch, batch_size, saving_interval, save_img_count, ngpu):
     G_optimizer = Adam(G.parameters(), lr=LR, betas=(0.5, 0.999))
     D_optimizer = Adam(D.parameters(), lr=LR, betas=(0.5, 0.999))
 
-    for epoch in range(epoch):
+    for epoch in range(epoch+1):
         for real_data in dataloader:
             batch_size = real_data.shape[0]
 
@@ -108,7 +177,6 @@ def Train(epoch, batch_size, saving_interval, save_img_count, ngpu):
             target_fake = torch.zeros(batch_size, 1, device=device)
 
             z = torch.randn((batch_size, 100), device=device) # 랜덤 벡터 z
-            real_data = real_data.reshape((batch_size, -1)).to(device) # flatten data
 
             # train D
             D.zero_grad()
@@ -128,12 +196,23 @@ def Train(epoch, batch_size, saving_interval, save_img_count, ngpu):
 
             print('epoch: {}, D_loss: {}, G_loss: {}, D(G(z)): {}, D(real_data): {}'.format(epoch, D_loss, G_loss, D(G(z))[0].detach().numpy(), D(real_data)[0].detach().numpy()))
 
+        torch.save(G, 'Generator.pt')
+        torch.save(D, 'Discriminator.pt')
+
         if (epoch%saving_interval == 0):
             z = torch.randn((save_img_count, 100), device=device)
             save_Result(G(z), 'epoch_{}'.format(epoch), w, h)
     
     z = torch.randn((save_img_count, 100), device=device)
     save_Result(G(z), 'result', w, h)
+
+# def Generate_Spectrogram(count=1):
+#     G = torch.load('Generator.pt')
+#     z = torch.randn((count, 100))
+
+#     result = G(z)
+#     result.detach().numpy().reshape(count, )
+
 
 def save_Result(G_result, save_name, img_w, img_h):
     for i in range(G_result.size(dim=0)):
@@ -142,4 +221,4 @@ def save_Result(G_result, save_name, img_w, img_h):
         converter.Save_Spectrogram_To_Image(temp, save_name+'_{}'.format(i))
 
 
-Train(200, 32, 5, 3, 1)
+Train(200, 64, 5, 3, 1)
