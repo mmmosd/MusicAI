@@ -24,9 +24,11 @@ st.set_page_config(
     layout="wide",
 )
 
-st.header("LOFI-LOOP 🎷")
-st.subheader("made by mmmosd")
+st.header("MUSIC_GENERATOR 🎷")
+st.selectbox("sfds")
+# st.subheader("")
 
+music = model.Generate_Music('music', volume=25)
 
 # autoplay_audio(filepath)
-# st.audio(Result_Audio, format="audio/wav", start_time=0, sample_rate=44100)
+st.audio(music, format="audio/wav", start_time=0, sample_rate=44100)

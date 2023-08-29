@@ -39,7 +39,7 @@ def Load_Data_As_Spectrogram(audio_length, max_count=None):
 
         fileList.append(spg)
 
-    spg = fileList[140]
+    spg = fileList[50]
 
     converter.Save_Spectrogram_To_Image(spg, 'sample_image')
     converter.Save_Spectrogram_To_Audio(spg, 'sample_audio')
