@@ -25,7 +25,7 @@ st.set_page_config(
 )
 
 st.header("MUSIC_GENERATOR 🎷")
-st.selectbox("sfds")
+# st.selectbox("sfds")
 # st.subheader("")
 
 music = model.Generate_Music('music', volume=25)

@@ -8,7 +8,7 @@ import dataMaker
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-AUDIOLEN = 15
+AUDIOLEN = 12
 LR = 0.0002
 
 
@@ -113,6 +113,8 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
     D.apply(weights_init)
     G.apply(weights_init)
 
+    print(G.state_dict())
+
     if (torch.cuda.device_count() > 1):
         D = nn.DataParallel(D)
         G = nn.DataParallel(G)
@@ -155,8 +157,11 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
 
             print('epoch: {}, D_loss: {}, G_loss: {}, D(G(z)): {}, D(real_data): {}'.format(epoch, D_loss, G_loss, D(G(z))[0].cpu().detach().numpy(), D(real_data)[0].cpu().detach().numpy()))
 
-        torch.save(G, 'Generator.pt')
-        torch.save(D, 'Discriminator.pt')
+        G_scripted = torch.jit.script(G)
+        D_scripted = torch.jit.script(D)
+
+        G_scripted.save('Generator.pt')
+        D_scripted.save('Discriminator.pt')
 
         if (epoch%saving_interval == 0):
             z = torch.randn((save_img_count, 100), device=device)
@@ -166,13 +171,17 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
     save_Result(G(z), 'result')
 
 def Generate_Music(save_name, volume=15):
-    G = torch.load('Generator.pt')
-    z = torch.randn((1, 100))
+    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+
+    G = torch.jit.load('Generator.pt')
+    G.eval()
+
+    z = torch.randn((1, 100), device=device)
 
     result = G(z)
 
     spg = result[0].cpu().detach().numpy()
-    audio = converter.Save_Spectrogram_To_Audio(spg, save_name, volume=volume)
+    audio = converter.Save_Spectrogram_To_Audio(spg, save_name, volume=volume, write=False)
 
     return audio
 
@@ -183,4 +192,4 @@ def save_Result(G_result, save_name):
         converter.Save_Spectrogram_To_Audio(spg, save_name+'_{}'.format(i))
         converter.Save_Spectrogram_To_Image(spg, save_name+'_{}'.format(i))
 
-Train(epoch=100, batch_size=16, saving_interval=1, save_img_count=3)
+# Train(epoch=100, batch_size=16, saving_interval=1, save_img_count=3)
