@@ -8,7 +8,7 @@ import dataMaker
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-AUDIOLEN = 12
+AUDIOLEN = 15
 LR = 0.0002
 
 
@@ -19,22 +19,22 @@ class Discriminator(nn.Module):
         self.w = w
         self.h = h
         self.main = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=64, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.Conv2d(in_channels=1, out_channels=128, kernel_size=4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(in_channels=64, out_channels=64*2, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=64*2),
+            nn.Conv2d(in_channels=128, out_channels=128*2, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=128*2),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(in_channels=64*2, out_channels=64*4, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=64*4),
+            nn.Conv2d(in_channels=128*2, out_channels=128*4, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=128*4),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(in_channels=64*4, out_channels=64*8, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=64*8),
+            nn.Conv2d(in_channels=128*4, out_channels=128*8, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=128*8),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(in_channels=64*8, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.Conv2d(in_channels=128*8, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.2, True),
         )
         self.linear = nn.Sequential(
@@ -62,23 +62,23 @@ class Generator(nn.Module):
             nn.ReLU(True)
         )
         self.main = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=1, out_channels=64*8, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=64*8),
+            nn.ConvTranspose2d(in_channels=1, out_channels=128*8, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=128*8),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=64*8, out_channels=64*4, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=64*4),
+            nn.ConvTranspose2d(in_channels=128*8, out_channels=128*4, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=128*4),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=64*4, out_channels=64*2, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=64*2),
+            nn.ConvTranspose2d(in_channels=128*4, out_channels=128*2, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=128*2),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=64*2, out_channels=64, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=64),
+            nn.ConvTranspose2d(in_channels=128*2, out_channels=128, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=128),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=64, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.ConvTranspose2d(in_channels=128, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh()
         )
 
@@ -112,8 +112,6 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
     # 가중치 초기화
     D.apply(weights_init)
     G.apply(weights_init)
-
-    print(G.state_dict())
 
     if (torch.cuda.device_count() > 1):
         D = nn.DataParallel(D)
@@ -157,6 +155,7 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
 
             print('epoch: {}, D_loss: {}, G_loss: {}, D(G(z)): {}, D(real_data): {}'.format(epoch, D_loss, G_loss, D(G(z))[0].cpu().detach().numpy(), D(real_data)[0].cpu().detach().numpy()))
 
+        # Generator 과 Discriminator의 클래스를 저장함
         G_scripted = torch.jit.script(G)
         D_scripted = torch.jit.script(D)
 
@@ -173,6 +172,7 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
 def Generate_Music(save_name, volume=15):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
+    # 저장된 클래스를 불러왔기 때문에 모델 선언을 하지 않아도 됨
     G = torch.jit.load('Generator.pt')
     G.eval()
 
@@ -192,4 +192,4 @@ def save_Result(G_result, save_name):
         converter.Save_Spectrogram_To_Audio(spg, save_name+'_{}'.format(i))
         converter.Save_Spectrogram_To_Image(spg, save_name+'_{}'.format(i))
 
-# Train(epoch=100, batch_size=16, saving_interval=1, save_img_count=3)
+Train(epoch=100, batch_size=32, saving_interval=1, save_img_count=3)
