@@ -4,6 +4,7 @@ import numpy as np
 import random
 import converter
 import dataMaker
+import gc
 
 from torch.optim import Adam
 from torch.utils.data import DataLoader
@@ -123,9 +124,12 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
     G_optimizer = Adam(G.parameters(), lr=LR, betas=(0.5, 0.999))
     D_optimizer = Adam(D.parameters(), lr=LR, betas=(0.5, 0.999))
 
+    gc.collect()
+    torch.cuda.empty_cache()
+
     for epoch in range(epoch+1):
         for real_data in dataloader:
-            real_data = real_data.to(device)
+            real_data = real_data.detach().to(device)
             target_real = torch.ones(batch_size, 1, device=device)
             target_fake = torch.zeros(batch_size, 1, device=device)
 
@@ -155,12 +159,9 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
 
             print('epoch: {}, D_loss: {}, G_loss: {}, D(G(z)): {}, D(real_data): {}'.format(epoch, D_loss, G_loss, D(G(z))[0].cpu().detach().numpy(), D(real_data)[0].cpu().detach().numpy()))
 
-        # Generator 과 Discriminator의 클래스를 저장함
+        # Generator의 클래스를 저장함
         G_scripted = torch.jit.script(G)
-        D_scripted = torch.jit.script(D)
-
         G_scripted.save('Generator.pt')
-        D_scripted.save('Discriminator.pt')
 
         if (epoch%saving_interval == 0):
             z = torch.randn((save_img_count, 100), device=device)
@@ -192,4 +193,4 @@ def save_Result(G_result, save_name):
         converter.Save_Spectrogram_To_Audio(spg, save_name+'_{}'.format(i))
         converter.Save_Spectrogram_To_Image(spg, save_name+'_{}'.format(i))
 
-Train(epoch=100, batch_size=32, saving_interval=1, save_img_count=3)
+Train(epoch=100, batch_size=12, saving_interval=1, save_img_count=3)
