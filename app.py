@@ -13,7 +13,7 @@ st.set_page_config(
 st.header("MUSIC_GENERATOR 🎷")
 
 button = st.button('Generate')
-interpolation_count = st.slider('Generate Count 🎶', 1, 50)
+interpolation_count = st.slider('Generate Count 🎶', 1, 20)
 
 if button:
     st.write('Generating...')

@@ -192,8 +192,8 @@ def Generate_Music(save_name, interpolation_count=3, volume=25):
     G = torch.jit.load('Generator.pt')
     G.eval()
 
-    z = torch.randn((2, 100), device=device)
-    z_interpolation = nn.Variable(nn.Tensor(np.linspace(z[0].cpu(), z[1].cpu(), interpolation_count)))
+    z = torch.randn((2, 100))
+    z_interpolation = torch.Tensor(np.linspace(z[0].detach().numpy(), z[1].detach().numpy(), interpolation_count)).to(device)
 
     result = G(z_interpolation).cpu().detach().numpy()
     spg = result[0][0]
