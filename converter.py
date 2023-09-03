@@ -6,7 +6,7 @@ from PIL import Image
 from sklearn.preprocessing import MinMaxScaler
 
 def Audio_To_Spectrogram(Audio):
-    S = librosa.feature.melspectrogram(y=Audio, sr=44100, n_mels=256)
+    S = librosa.feature.melspectrogram(y=Audio, sr=44100, n_mels=128)
 
     log_mel = librosa.power_to_db(S, ref=np.max)
     norm_spec = (log_mel/40)+1 # normalize

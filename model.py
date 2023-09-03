@@ -9,7 +9,7 @@ import gc
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-AUDIOLEN = 15
+AUDIOLEN = 5
 LR = 0.0002
 
 
@@ -20,28 +20,32 @@ class Discriminator(nn.Module):
         self.w = w
         self.h = h
         self.main = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=128, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.Conv2d(in_channels=1, out_channels=64, kernel_size=4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(in_channels=128, out_channels=128*2, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=128*2),
+            nn.Conv2d(in_channels=64, out_channels=64*2, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=64*2),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(in_channels=128*2, out_channels=128*4, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=128*4),
+            nn.Conv2d(in_channels=64*2, out_channels=64*4, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=64*4),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(in_channels=128*4, out_channels=128*8, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=128*8),
+            nn.Conv2d(in_channels=64*4, out_channels=64*8, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=64*8),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(in_channels=128*8, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.Conv2d(in_channels=64*8, out_channels=64*16, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=64*16),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(in_channels=64*16, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.2, True),
         )
         self.linear = nn.Sequential(
             nn.Flatten(),
 
-            nn.Linear(in_features=int((w*h)/(32*32)), out_features=1),
+            nn.Linear(in_features=int((w*h)/(64*64)), out_features=1),
             nn.Sigmoid()
         )
 
@@ -58,33 +62,37 @@ class Generator(nn.Module):
         self.w = w
         self.h = h
         self.linear = nn.Sequential(
-            nn.Linear(in_features=100, out_features=int((w*h)/(32*32))),
-            nn.BatchNorm1d(num_features=int((w*h)/(32*32))),
+            nn.Linear(in_features=100, out_features=int((w*h)/(64*64))),
+            nn.BatchNorm1d(num_features=int((w*h)/(64*64))),
             nn.ReLU(True)
         )
         self.main = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=1, out_channels=128*8, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=128*8),
+            nn.ConvTranspose2d(in_channels=1, out_channels=64*16, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=64*16),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=128*8, out_channels=128*4, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=128*4),
+            nn.ConvTranspose2d(in_channels=64*16, out_channels=64*8, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=64*8),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=128*4, out_channels=128*2, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=128*2),
+            nn.ConvTranspose2d(in_channels=64*8, out_channels=64*4, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=64*4),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=128*2, out_channels=128, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(num_features=128),
+            nn.ConvTranspose2d(in_channels=64*4, out_channels=64*2, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=64*2),
             nn.ReLU(True),
 
-            nn.ConvTranspose2d(in_channels=128, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.ConvTranspose2d(in_channels=64*2, out_channels=64, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(num_features=64),
+            nn.ReLU(True),
+
+            nn.ConvTranspose2d(in_channels=64, out_channels=1, kernel_size=4, stride=2, padding=1, bias=False),
             nn.Tanh()
         )
 
     def forward(self, inputs):
-        x = self.linear(inputs).view(-1, 1, int(self.h/32), int(self.w/32))
+        x = self.linear(inputs).view(-1, 1, int(self.h/64), int(self.w/64))
         x = self.main(x)
         return x
     
@@ -170,18 +178,21 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
     z = torch.randn((save_img_count, 100), device=device)
     save_Result(G(z), 'result')
 
-def Generate_Music(save_name, volume=15):
+def Generate_Music(save_name, count=3, volume=25):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
     # 저장된 클래스를 불러왔기 때문에 모델 선언을 하지 않아도 됨
     G = torch.jit.load('Generator.pt')
     G.eval()
 
-    z = torch.randn((1, 100), device=device)
+    z = torch.randn((count, 100), device=device)
 
-    result = G(z)
+    result = G(z).cpu().detach().numpy()
+    spg = result[0][0]
 
-    spg = result[0].cpu().detach().numpy()
+    for i in range(count-1):
+        spg = np.concatenate((spg, result[i+1][0]), axis=1)
+
     audio = converter.Save_Spectrogram_To_Audio(spg, save_name, volume=volume, write=False)
 
     return audio
@@ -193,4 +204,4 @@ def save_Result(G_result, save_name):
         converter.Save_Spectrogram_To_Audio(spg, save_name+'_{}'.format(i))
         converter.Save_Spectrogram_To_Image(spg, save_name+'_{}'.format(i))
 
-Train(epoch=100, batch_size=12, saving_interval=1, save_img_count=3)
+# Train(epoch=50, batch_size=32, saving_interval=1, save_img_count=3)
