@@ -107,7 +107,7 @@ def weights_init(m):
         nn.init.normal_(m.weight.data, 1.0, 0.02) # 평균은 1, 분산은 0.02가 되도록 batchnormalization layer의 가중치를 랜덤하게 초기화함
         nn.init.constant_(m.bias.data, 0)
 
-def Train(epoch, batch_size, saving_interval, save_img_count):
+def Train(epoch, batch_size, saving_interval, save_img_count, continue_learning=False):
     DataList, w, h = dataMaker.Load_Data_As_Spectrogram(AUDIOLEN)
     dataloader = DataLoader(DataList, batch_size=batch_size, shuffle=True, drop_last=True)
     print("data_shape: {}, {}".format(w, h))
@@ -115,8 +115,12 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
     print('GPU count: {}'.format(torch.cuda.device_count()))
     
-    D = Discriminator(w, h).to(device)
-    G = Generator(w, h).to(device)
+    if continue_learning:
+        D = torch.jit.load('Discriminator.pt')
+        G = torch.jit.load('Generator.pt')
+    else:
+        D = Discriminator(w, h).to(device)
+        G = Generator(w, h).to(device)
 
     # 가중치 초기화
     D.apply(weights_init)
@@ -168,7 +172,10 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
             print('epoch: {}, D_loss: {}, G_loss: {}, D(G(z)): {}, D(real_data): {}'.format(epoch, D_loss, G_loss, D(G(z))[0].cpu().detach().numpy(), D(real_data)[0].cpu().detach().numpy()))
 
         # Generator의 클래스를 저장함
+        D_scripted = torch.jit.script(D)
         G_scripted = torch.jit.script(G)
+        
+        D_scripted.save('Discriminator.pt')
         G_scripted.save('Generator.pt')
 
         if (epoch%saving_interval == 0):
@@ -178,19 +185,20 @@ def Train(epoch, batch_size, saving_interval, save_img_count):
     z = torch.randn((save_img_count, 100), device=device)
     save_Result(G(z), 'result')
 
-def Generate_Music(save_name, count=3, volume=25):
+def Generate_Music(save_name, interpolation_count=3, volume=25):
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
 
     # 저장된 클래스를 불러왔기 때문에 모델 선언을 하지 않아도 됨
     G = torch.jit.load('Generator.pt')
     G.eval()
 
-    z = torch.randn((count, 100), device=device)
+    z = torch.randn((2, 100), device=device)
+    z_interpolation = nn.Variable(nn.Tensor(np.linspace(z[0].cpu(), z[1].cpu(), interpolation_count)))
 
-    result = G(z).cpu().detach().numpy()
+    result = G(z_interpolation).cpu().detach().numpy()
     spg = result[0][0]
 
-    for i in range(count-1):
+    for i in range(interpolation_count-1):
         spg = np.concatenate((spg, result[i+1][0]), axis=1)
 
     audio = converter.Save_Spectrogram_To_Audio(spg, save_name, volume=volume, write=False)
@@ -204,4 +212,4 @@ def save_Result(G_result, save_name):
         converter.Save_Spectrogram_To_Audio(spg, save_name+'_{}'.format(i))
         converter.Save_Spectrogram_To_Image(spg, save_name+'_{}'.format(i))
 
-# Train(epoch=50, batch_size=32, saving_interval=1, save_img_count=3)
+Train(epoch=50, batch_size=32, saving_interval=1, save_img_count=3)

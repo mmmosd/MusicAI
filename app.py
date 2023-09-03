@@ -13,10 +13,10 @@ st.set_page_config(
 st.header("MUSIC_GENERATOR 🎷")
 
 button = st.button('Generate')
-count = st.slider('Generate Count 🎶', 1, 10)
+interpolation_count = st.slider('Generate Count 🎶', 1, 50)
 
 if button:
     st.write('Generating...')
-    music = model.Generate_Music('music', count=count, volume=25)
+    music = model.Generate_Music('music', interpolation_count=interpolation_count, volume=25)
     st.audio(music, format="audio/wav", start_time=0, sample_rate=44100)
     # st.image()
