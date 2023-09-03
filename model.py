@@ -212,4 +212,4 @@ def save_Result(G_result, save_name):
         converter.Save_Spectrogram_To_Audio(spg, save_name+'_{}'.format(i))
         converter.Save_Spectrogram_To_Image(spg, save_name+'_{}'.format(i))
 
-Train(epoch=50, batch_size=32, saving_interval=1, save_img_count=3)
+# Train(epoch=50, batch_size=32, saving_interval=1, save_img_count=3)
