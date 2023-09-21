@@ -1,45 +1,49 @@
-import math
 import librosa
-import numpy as np
 import glob
 import converter
 import soundfile as sf
+import random
 
 
-def Cut_Audio(data_path_list, cut_length, save_path, count=None, write=True):
+def Cut_Audio(data_path_list, cut_length, save_path, shuffle=True, count=None, write=True):
     resultList = []
 
+    if (shuffle):
+        random.shuffle(data_path_list)
+
     for num, data_path in enumerate(data_path_list):
-        print('loading file: '+data_path)
+        print('loading file {}: '.format(num) + data_path)
         audio, sr = librosa.load(data_path, sr=44100)
+        tempo, beats = librosa.beat.beat_track(y=audio, sr=sr)
+        beats = librosa.frames_to_time(beats, sr=sr)
 
-        for j in range(int(math.floor(len(audio)/(cut_length*sr)))):
-            cut = audio[j*cut_length*sr : j*cut_length*sr + cut_length*sr]
-            
-            if (write): sf.write(save_path+'data{}_{}.wav'.format(num, j), cut, sr)
-            
-            resultList.append(cut)
+        for idx, start in enumerate(beats):
+            if (int(start*sr) + int(cut_length*sr) < len(audio)):
+                cut = audio[int(start*sr) : int(start*sr) + int(cut_length*sr)]
+                resultList.append(cut)
 
-            if (count != None): 
-                if (len(resultList) >= count): return resultList
+                if (write): sf.write(save_path+'data{}_{}.wav'.format(num, idx), cut, sr)
+
+                if (count != None): 
+                    if (len(resultList) >= count): return resultList
 
     return resultList
 
 
-def Load_Data_As_Spectrogram(audio_length, max_count=None):
-    Data_list = Cut_Audio(glob.glob('./Sample_Data/*'), audio_length, './data/', max_count, write=False)
+def Load_Data_As_Spectrogram(audio_length, shuffle=True, max_count=None):
+    Data_list = Cut_Audio(glob.glob('./Sample_Data/*'), audio_length, './data/', shuffle, max_count, write=False)
     fileList = []
 
-    for i in range(len(Data_list)):
-        spg = converter.Audio_To_Spectrogram(Data_list[i])
+    for idx, value in enumerate(Data_list):
+        spg = converter.Audio_To_Spectrogram(value)
 
-        spg = spg[0 : int(spg.shape[0] / 64) * 64, 0 : int(spg.shape[1] / 64) * 64]
+        spg = spg[0 : int(spg.shape[0] / 32) * 32, 0 : int(spg.shape[1] / 32) * 32]
 
         h, w = spg.shape
 
         fileList.append(spg)
 
-    spg = fileList[50]
+    spg = fileList[random.randint(0, len(fileList)-1)]
 
     converter.Save_Spectrogram_To_Image(spg, 'sample_image')
     converter.Save_Spectrogram_To_Audio(spg, 'sample_audio')
