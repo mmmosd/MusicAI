@@ -17,5 +17,5 @@ interpolation_count = st.slider('Interpolation Count 🎶', 1, 20)
 
 if button:
     st.write('Generating...')
-    music = model.Generate(saved_model_name='Generator_epoch_100.pt', interpolation_count=interpolation_count, volume=25)
+    music = model.Generate(saved_model_name='Generator_epoch_50.pt', interpolation_count=interpolation_count, volume=25)
     st.audio(music, format="audio/wav", start_time=0, sample_rate=44100)

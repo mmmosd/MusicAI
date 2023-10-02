@@ -9,15 +9,16 @@ import gc
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-DATACOUNT = 20000
+DATACOUNT = 40000
+BATCH_SIZE = 64
 LR = 0.0002
-
+NUM_EPOCH = 100
 
 class Discriminator(nn.Module):
     def __init__(self, w, h):
         super(Discriminator, self).__init__()
 
-        # 보통의 CNN 구조에서는 Max-Pooling으로 크기 조절을 하지만, Max-Pooling은 미분이 불가능하여 학습을 할 수 없기 때문에 strided convolution을 사용함
+        # 보통의 CNN 구조에서는 Max-Pooling으로 이미지를 크기를 줄여나가지만, Max-Pooling은 미분이 불가능하여 학습을 할 수 없기 때문에 strided convolution을 사용함
 
         self.w = w
         self.h = h
@@ -26,26 +27,32 @@ class Discriminator(nn.Module):
             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(num_features=64),
             nn.LeakyReLU(0.2, True),
+            nn.Dropout(0.5),
 
             nn.Conv2d(in_channels=64, out_channels=64*2, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(num_features=64*2),
             nn.LeakyReLU(0.2, True),
+            nn.Dropout(0.5),
 
             nn.Conv2d(in_channels=64*2, out_channels=64*4, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(num_features=64*4),
             nn.LeakyReLU(0.2, True),
+            nn.Dropout(0.5),
 
             nn.Conv2d(in_channels=64*4, out_channels=64*8, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(num_features=64*8),
             nn.LeakyReLU(0.2, True),
+            nn.Dropout(0.5),
 
             nn.Conv2d(in_channels=64*8, out_channels=64*16, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(num_features=64*16),
             nn.LeakyReLU(0.2, True),
+            nn.Dropout(0.5)
         )
         self.conv1x1 = nn.Sequential(
             nn.Conv2d(in_channels=64*16, out_channels=1, kernel_size=1, stride=1, padding=0, bias=False),
             nn.LeakyReLU(0.2, True),
+            nn.Dropout(0.5)
         )
         self.linear = nn.Sequential(
             nn.Flatten(),
@@ -76,7 +83,7 @@ class Generator(nn.Module):
         self.convT1x1 = nn.Sequential(
             nn.ConvTranspose2d(in_channels=1, out_channels=64*16, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(num_features=64*16),
-            nn.ReLU(True),
+            nn.ReLU(True)
         )
         self.main = nn.Sequential(
             nn.ConvTranspose2d(in_channels=64*16, out_channels=64*8, kernel_size=4, stride=2, padding=1, bias=False),
@@ -120,9 +127,9 @@ def Add_Guassian_Noise(tensor, mean, std, device):
     noise = torch.randn((tensor.size()), device=device) * std + mean
     return tensor + noise
 
-def Train(Epoch, batch_size, img_saving_interval, model_saving_interval, save_img_count, continue_learning=False):
+def Train(img_saving_interval, model_saving_interval, save_img_count, continue_learning=False):
     DataList, w, h = dataMaker.Load_Data_As_Spectrogram(5, max_count=DATACOUNT, shuffle=False)
-    dataloader = DataLoader(DataList, batch_size=batch_size, shuffle=True, drop_last=True)
+    dataloader = DataLoader(DataList, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
     print("data_shape: {}, {}".format(w, h))
     
     device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
@@ -139,10 +146,6 @@ def Train(Epoch, batch_size, img_saving_interval, model_saving_interval, save_im
     D.apply(weights_init)
     G.apply(weights_init)
 
-    if (torch.cuda.device_count() > 1):
-        D = nn.DataParallel(D)
-        G = nn.DataParallel(G)
-
     criterion = nn.BCELoss() # 손실 함수 Binary Cross Entropy (실제값이 1일 때, 예측값이 0에 가까울수록 오차가 커짐)
 
     # 최적화 함수 (beta1은 0.5, learning rate는 0.0002)
@@ -158,14 +161,14 @@ def Train(Epoch, batch_size, img_saving_interval, model_saving_interval, save_im
     Discrime_real = []
     Discrime_fake = []
 
-    for epoch in range(Epoch+1):
+    for epoch in range(1, NUM_EPOCH+1):
         for real_data in dataloader:
             real_data = real_data.detach().to(device)
 
-            target_real = torch.ones(batch_size, 1, device=device)
-            target_fake = torch.zeros(batch_size, 1, device=device)
+            target_real = torch.ones(BATCH_SIZE, 1, device=device)
+            target_fake = torch.zeros(BATCH_SIZE, 1, device=device)
 
-            z = torch.randn((batch_size, 100), device=device) # 랜덤 벡터 z (z의 값을 조정하여 원하는 결과물을 얻을 수 있음)
+            z = torch.randn((BATCH_SIZE, 100), device=device) # 랜덤 벡터 z (z의 값을 조정하여 원하는 결과물을 얻을 수 있음)
 
             # train D
             # 판별자가 진짜 데이터를 판별하면 1(target_real)로, 가짜 데이터를 판별하면 0(target_fake)에 가까워지게끔 훈련, 즉 진짜 데이터와 가짜 데이터를 1과 0으로 구분하도록 훈련함
@@ -263,4 +266,4 @@ def save_Result(G_result, save_name):
         converter.Save_Spectrogram_To_Image(spg, save_name+'_{}'.format(i))
 
 
-# Train(Epoch=100, batch_size=64, img_saving_interval=1, model_saving_interval=5, save_img_count=3, continue_learning=False)
+# Train(img_saving_interval=1, model_saving_interval=5, save_img_count=3, continue_learning=False)

@@ -5,7 +5,7 @@ import soundfile as sf
 import random
 
 
-def Cut_Audio(data_path_list, cut_length, save_path, shuffle=True, count=None, write=True):
+def Cut_Audio(data_path_list, cut_length, write=True, save_path=None, shuffle=True, count=None):
     resultList = []
 
     if (shuffle):
@@ -31,7 +31,7 @@ def Cut_Audio(data_path_list, cut_length, save_path, shuffle=True, count=None, w
 
 
 def Load_Data_As_Spectrogram(audio_length, shuffle=True, max_count=None):
-    Data_list = Cut_Audio(glob.glob('./Sample_Data/*'), audio_length, './data/', shuffle, max_count, write=False)
+    Data_list = Cut_Audio(glob.glob('./Sample_Data/*'), audio_length, write=False, save_path='./data/', shuffle=shuffle, count=max_count)
     fileList = []
 
     for idx, value in enumerate(Data_list):
