@@ -18,8 +18,6 @@ class Discriminator(nn.Module):
     def __init__(self, w, h):
         super(Discriminator, self).__init__()
 
-        # 보통의 CNN 구조에서는 Max-Pooling으로 이미지를 크기를 줄여나가지만, Max-Pooling은 미분이 불가능하여 학습을 할 수 없기 때문에 strided convolution을 사용함
-
         self.w = w
         self.h = h
 
@@ -212,8 +210,7 @@ def Train(img_saving_interval, model_saving_interval, save_img_count, continue_l
             
             D_scripted.save('Discriminator_epoch_{}'.format(epoch)+'.pt')
             G_scripted.save('Generator_epoch_{}'.format(epoch)+'.pt')
-
-        if (epoch%img_saving_interval == 0):
+            
             z = torch.randn((save_img_count, 100), device=device)
             save_Result(G(z), 'epoch_{}'.format(epoch))
 
@@ -250,14 +247,15 @@ def Generate(saved_model_name, interpolation_count=3, volume=25):
 
     for i in range(interpolation_count):
         spg = result[i][0]
-        audio = converter.Save_Spectrogram_To_Audio(spg, filename='none', volume=volume, write=False)
 
         if (i == 0):
-            y = np.array(audio)
+            spgList = np.array(spg)
         else:
-            y = np.concatenate((y, audio), axis=0)
+            spgList = np.concatenate((spgList, spg), axis=1)
 
-    return y
+    audio = converter.Save_Spectrogram_To_Audio(spgList, filename='none', volume=volume, write=False)
+
+    return audio
 
 def save_Result(G_result, save_name):
     for i in range(G_result.size(dim=0)):
