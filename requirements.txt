@@ -1,6 +1,0 @@
-torch
-matplotlib
-numpy
-librosa
-soundfile
-glob
