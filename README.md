@@ -23,7 +23,7 @@ Discriminator의 순전파 과정
 
 Generator의 구조
 ----------------
-- DCGAN 논문에서, Generator는 활성화 함수로 모두 ReLU를 사용하고, output layer에는 hyperbolic tangent를 사용한다. 과적합 방지를 위해 BatchNorm을 사용하였다.
+- DCGAN 논문에서, Generator는 활성화 함수로 모두 ReLU를 사용하고, output layer에는 활성화 함수로 Tanh을 사용한다. 과적합 방지를 위해 BatchNorm을 사용하였다.
 
 Generator의 순전파 과정
 -----------------------
