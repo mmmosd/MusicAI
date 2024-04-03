@@ -32,4 +32,20 @@ Generator의 순전파 과정
 - convTranspose2d를 거치며 이미지 크기를 점차 늘리며 채널 수는 점차 줄인다.
 - 마지막 output layer에서는 채널 수를 한 개로 만들고, Tanh를 거치며 각각 픽셀들의 값의 범위를 -1~1로 정규화한다.
 
+
+
+![epoch_1_0](https://github.com/mmmosd/MusicAI/assets/74486212/1d5f316d-5d5f-4c97-8654-14a234dfb201)
+(epoch 1의 결과)
+
 ![epoch_54_1](https://github.com/mmmosd/MusicAI/assets/74486212/a93afa84-b18a-425b-ab3d-90a8df9d5e26)
+(epoch_50의 결과)
+
+
+원하는 길이의 음악 생성
+-----------------------
+- DCGAN은 단순히 이미지를 외우지 않고, 학습 데이터들의 특징들을 학습하기 때문에 Generator의 입력인 랜덤 벡터 z를 점진적으로 변화시키면, 촐력 이미지도 그에 따라 부드럽게 변화한다.
+- 구체적인 과정은 서로 다른 노이즈를 두 개 생성하고, 두 노이즈 사이에 선형 보간을 통한 부드러운 변화를 가지는 새로운 노이즈들을 생성하게 된다. 그렇게 만든 노이즈들을 모두 Generator에 입력한 뒤, 그 출력물들을 전부 이어붙이면 원하는 길이의 음악을 생성할 수 있다.
+
+
+![none](https://github.com/mmmosd/MusicAI/assets/74486212/7cd6421e-aa21-401d-966e-dcd7199ea1fa)
+(점진적으로 변화하는 이미지들을 이어붙인 결과)
