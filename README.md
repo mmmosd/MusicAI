@@ -32,3 +32,4 @@ Generator의 순전파 과정
 - convTranspose2d를 거치며 이미지 크기를 점차 늘리며 채널 수는 점차 줄인다.
 - 마지막 output layer에서는 채널 수를 한 개로 만들고, Tanh를 거치며 각각 픽셀들의 값의 범위를 -1~1로 정규화한다.
 
+![epoch_54_1](https://github.com/mmmosd/MusicAI/assets/74486212/a93afa84-b18a-425b-ab3d-90a8df9d5e26)
