@@ -37,8 +37,7 @@ Generator의 순전파 과정
 ![sample_image_3](https://github.com/mmmosd/MusicAI/assets/74486212/d10f2af1-4d64-42ab-8bfd-546eb337d911)
 (학습할 음악 이미지)
 
-![epoch_1_0](https://github.com/mmmosd/MusicAI/asset![Uploading sample_image_3.jpg…]()
-s/74486212/1d5f316d-5d5f-4c97-8654-14a234dfb201)
+![epoch_1_0](https://github.com/mmmosd/MusicAI/assets/74486212/15785516-52a6-4f25-8fe2-570c72ec2027)
 (epoch 1의 결과)
 
 ![epoch_54_1](https://github.com/mmmosd/MusicAI/assets/74486212/a93afa84-b18a-425b-ab3d-90a8df9d5e26)
