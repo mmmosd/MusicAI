@@ -6,7 +6,7 @@ DCGAN을 활용한 음악 생성 AI
 
 파일들의 역할
 -------------
-- Converter.py: 음악 파일을 Spectrogram으로 변환하거나 SPectrogram을 음악 파일, 사진으로 변환함.
+- Converter.py: 음악 파일을 Spectrogram으로 변환하거나 Spectrogram을 음악 파일, 사진으로 변환함.
 - DataMaker.py: 특정 폴더에 들어있는 음악 파일들을 불러와 일정한 간격으로 자르고, 자른 음악들을 Converter.py에서 Spectrogram으로 변환한다.
 - model.py: DataMaker.py에서 만든 데이터들을 불러와 모델을 학습하여 저장함. 저장된 모델을 불러와 음악을 생성한다.
 - app.py: streamlit 라이브러리를 사용하여 웹사이트에서 음악 생성을 쉽게 할 수 있다.
